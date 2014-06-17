@@ -38,6 +38,7 @@ class Spotify {
     private $clientID;
     
     public $redirectURI;
+    public $refreshToken;
     public $accessToken;
     public $username;
     /**
@@ -49,8 +50,29 @@ class Spotify {
         $this->username = $a['id'];
         $this->profile = $a;
         
+        
     }
-    
+    /**
+    public function refreshToken($refreshToken) {
+        $code = $_GET['code']; // Get the code
+        $state = $_GET['state']; // Get the state
+        $error = isset($_GET['error']) ? $_GET['error'] : NULL;
+        if ($error) {
+            throw new Exception (urldecode($error));
+        }
+        $response = NULL;
+        // If no error execute this
+        try {
+            $response = $this->request('POST', SPOTIFY_ACCOUNT_ENDPOINT, '/api/token', 'text', array(
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $refreshToken
+            ), array('Authorization Basic ' . md5($this->clientID) . ':' . md5($this->clientSecret)));
+        } catch (Exception $e) {
+            throw new Exception($e);   
+        }
+        
+        return $response;
+    }**/
     /**
      * Client secret for Spotify
      */
