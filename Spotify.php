@@ -27,7 +27,6 @@
  */
 define("SPOTIFY_API_ENDPOINT", "https://api.spotify.com/v1");
 define("SPOTIFY_ACCOUNT_ENDPOINT", "https://accounts.spotify.com");
- 
 /**
  * Base class for Spotify
  * @author Alexander Forselius <alex@artistconnector.com>
@@ -46,6 +45,74 @@ class Spotify {
      */
     private $clientSecret;
     
+    public function isAuthenticated() {
+        return $this->accessToken != NULL ? $this->accessToken : '';
+    }
+    /**
+     * GET from the API
+     */
+    public function get($resource, $id = 0, $query = NULL) {
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/' . $resource, 'text', NULL);
+        return $data;
+    }
+    /**
+     * POST to the API
+     */
+    public function post($resource, $data) {
+        $data = $this->request('POST', SPOTIFY_API_ENDPOINT, '/' . $resource . ($id ? '/' . $id . '' : ''), 'application/json',  $data, array());
+        return $data;
+    }
+    /**
+     * PUT to the API
+     */
+    public function put($resource, $id = 0, $data = NULL) {
+        $data = $this->request('PUT', SPOTIFY_API_ENDPOINT, '/' . $resource . '/' . $id . '', 'application/json',  $data, array());
+        return $data;
+    }
+    /**
+     * Search
+     */
+    public function search($q, $type,  $limit = 10, $offset = 10) {
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/search?q=' . urlencode($q) . '&' . ($type ? 'type=' . implode(',', $type) : '') . 'limit=' . $limit . '&&offest=' . $offset);
+        
+    }
+    public function me() {
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/me', 'text');
+        return $data;
+    }
+    /**
+     * Return playlists for user.
+     * Requires valid OAuth token
+     * @param {String} $user_id
+     */
+    public function getPlaylistsForUser($user_id) {
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user_id . '/playlists', 'text');
+        return $data;
+    }
+    
+    /**
+     * Get playlist info by Spotify URI
+     */
+    public function getPlaylistInfo($uri) {
+        $parts = explode(':', $uri);
+        $user = $uri[2];
+        $playlist = $uri[4];
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user . '/playlists/' . $playlist, 'json', NULL);
+        return $data;
+    }
+    /**
+     * Get playlist info by Spotify URI
+     * @param {String} $uri The Spotify URI to the playlist
+     * @return Array an array of tracks
+     */
+    public function getTracksInPlaylist($uri) {
+        $parts = explode(':', $uri);
+        $user = $uri[2];
+        $playlist = $uri[4];
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user . '/playlists/' . $playlist . '/tracks', 'json', NULL);
+        return $data;
+    }
+    
     /**
      * Request against the spotify Web API
      * @param {String} $method The method to use
@@ -60,6 +127,9 @@ class Spotify {
         $headers[] = 'Accept: application/json';
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        if ($this->accessToken) {
+            $headers[] = 'Authorization: Bearer ' . $this->accessToken;
+        }
         if ($method && $method != 'GET') {
             
             if ($method == $POST) {
@@ -148,4 +218,32 @@ class Spotify {
         
     }
         
+}
+
+/**
+ * Base model for endpoint
+ * 
+ * 
+ */
+class SpotifyAPIModel {
+    public $api;
+    public $model = '';
+    public function __construct($api, $model) {
+        $this->api = $api;
+        $this->model = $model;
+    }
+}
+/**
+ * Resembles the Spotify User endpoint
+ */
+class SpotifyUser extends SpotifyAPIModel {
+    public function getUser($id) {
+        $user = $this->api->get('users', $id);
+        return $user;
+    }
+    public function __construct($api) {
+      parent::__construct($api, 'users');
+      
+    }   
+    
 }
