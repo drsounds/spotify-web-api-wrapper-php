@@ -52,7 +52,7 @@ class Spotify {
         
         
     }
-    /**
+    
     public function refreshToken($refreshToken) {
         $code = $_GET['code']; // Get the code
         $state = $_GET['state']; // Get the state
@@ -62,17 +62,19 @@ class Spotify {
         }
         $response = NULL;
         // If no error execute this
+        $auth = 'Authorization: Basic ' . base64_encode($this->clientID . ':' . $this->clientSecret);
+        
         try {
             $response = $this->request('POST', SPOTIFY_ACCOUNT_ENDPOINT, '/api/token', 'text', array(
                 'grant_type' => 'refresh_token',
                 'refresh_token' => $refreshToken
-            ), array('Authorization Basic ' . md5($this->clientID) . ':' . md5($this->clientSecret)));
+            ), array(), $auth);
         } catch (Exception $e) {
             throw new Exception($e);   
         }
         
         return $response;
-    }**/
+    }
     /**
      * Client secret for Spotify
      */
@@ -208,19 +210,22 @@ class Spotify {
      * @param {String} $path The path
      * @param {String} $data (Optional) Data sent
      */
-    public function request($method, $endpoint, $path, $type='text', $data = array(), $opt_headers = array()) {
+    public function request($method, $endpoint, $path, $type='text', $data = array(), $opt_headers = array(), $auth = FALSE) {
         $ch = curl_init();
         $url = $endpoint . $path;
+      
         curl_setopt($ch, CURLOPT_URL, $url);
         $headers = $opt_headers;
         
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_COOKIEFILE, './cookie.txt');
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        if ($this->accessToken) {
+        if (!$auth) {
+            if ($this->accessToken)
             $headers[] = 'Authorization: Bearer ' . $this->accessToken;
            
+        } else {
+            $headers[] = ($auth);
         }
         if ($method && $method != 'GET') {
             
@@ -235,7 +240,8 @@ class Spotify {
                 if ($type == 'text') {
                     if (is_array($post_data)) {
                         $post_data = http_build_query($post_data);
-                        curl_setopt($ch, CURLOPT_POST, count($post_data));
+                    
+                        curl_setopt($ch, CURLOPT_POST, strlen($post_data));
                         curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
                         
                     } else if(is_string($post_data)) {
@@ -263,9 +269,10 @@ class Spotify {
         curl_setopt($ch, CURLOPT_HEADER, FALSE);
         $response = curl_exec($ch);
         $result = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        var_dump($result);
-        if ($result < 200 || $request > 299) {
-            throw new Exception("Error. Code was " . curl_errno($ch) . ' ' . $result);
+      
+        if ($result < 200 || $result > 299) {
+          
+            throw new Exception("Error. Code was " . curl_errno($ch) . ' ' . $result . ' ' . $response);
         }
         $data = json_decode($response, TRUE);
         echo ($response);
@@ -303,6 +310,8 @@ class Spotify {
                 'client_id' => $this->clientID,
                 'client_secret' => $this->clientSecret
             ));
+            
+            
         } catch (Exception $e) {
             throw new Exception($e);   
         }
