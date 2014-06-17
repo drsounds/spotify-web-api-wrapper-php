@@ -95,9 +95,11 @@ class Spotify {
      */
     public function getPlaylistInfo($uri) {
         $parts = explode(':', $uri);
-        $user = $uri[2];
-        $playlist = $uri[4];
-        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user . '/playlists/' . $playlist, 'json', NULL);
+        $user = $parts[2];
+        $playlist = $parts[4];
+        $uri = '/users/' . $user . '/playlists/' . $playlist;
+        var_dump($uri);
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, $uri, 'text', NULL);
         return $data;
     }
     /**
@@ -107,9 +109,23 @@ class Spotify {
      */
     public function getTracksInPlaylist($uri) {
         $parts = explode(':', $uri);
-        $user = $uri[2];
-        $playlist = $uri[4];
+        $user = $parts[2];
+        $playlist = $parts[4];
         $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user . '/playlists/' . $playlist . '/tracks', 'json', NULL);
+        return $data;
+    }
+    
+    /***
+     * Add tracks to a playlist
+     ***/
+    public function addTracksToPlaylist($uri, $tracks) {
+        $parts = explode(':', $uri);
+        $user = $parts[2];
+        $playlist = $parts[4];
+        $url = '/users/' . $user . '/playlists/' . $playlist . '/tracks';
+
+        $data = $tracks;
+        $data = $this->request('POST', SPOTIFY_API_ENDPOINT, $url, 'application/json', $tracks);
         return $data;
     }
     
@@ -124,11 +140,14 @@ class Spotify {
         $url = $endpoint . $path;
         curl_setopt($ch, CURLOPT_URL, $url);
         $headers = $opt_headers;
-        $headers[] = 'Accept: application/json';
+        
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_COOKIEFILE, './cookie.txt');
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         if ($this->accessToken) {
             $headers[] = 'Authorization: Bearer ' . $this->accessToken;
+           
         }
         if ($method && $method != 'GET') {
             
@@ -141,22 +160,39 @@ class Spotify {
             if ($method == 'POST' || $method == 'PUT') {
                 $post_data = $data;
                 if ($type == 'text') {
-                    $post_data = http_build_query($post_data);
-                    curl_setopt($ch, CURLOPT_POST, count($post_data));
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+                    if (is_array($post_data)) {
+                        $post_data = http_build_query($post_data);
+                        curl_setopt($ch, CURLOPT_POST, count($post_data));
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+                        
+                    } else if(is_string($post_data)) {
+                        
+                        curl_setopt($ch, CURLOPT_POST, strlen($post_data));
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+                     
+                    }
                 }else if ($type == 'application/json') {
-                     $post_data = json_encode($post_data);
-                    $headers[] = 'Content-type: application/json';
-                    $headers[] = 'Content-Length: ' . count($post_data);
+                    if ($post_data) {
+                        
+                        $post_data = json_encode($post_data);
+                       
+                        $headers[] = 'Accept: application/json';
+                       
+                        $headers[] = 'Content-type: application/json';
+                        curl_setopt($ch, CURLOPT_POST, true);
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
+                   
+                    }
                 }
             }
         }
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_HEADER, true);
         $response = curl_exec($ch);
+        echo $response;
         $result = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         if ($result != 200) {
-            throw new Exception("Error. Code was " .$response);
+            throw new Exception("Error. Code was " . curl_errno($ch) . ' ' . $result);
         }
         $data = json_decode($response, TRUE);
         
@@ -169,7 +205,7 @@ class Spotify {
      * @return {Void} Redirects the user to the authorization flow
      */
     public function startAuthorization($scope) {
-        header('location: ' . SPOTIFY_ACCOUNT_ENDPOINT . '/authorize?client_id=' . $this->clientID . '&response_type=code&redirect_uri=' .urlencode($this->redirectURI) . '&scope=' . implode(',', $scope));
+        header('location: ' . SPOTIFY_ACCOUNT_ENDPOINT . '/authorize?client_id=' . $this->clientID . '&response_type=code&redirect_uri=' .urlencode($this->redirectURI) . '&scope=' . implode('+', $scope));
        
     }
     /**
