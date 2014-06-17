@@ -1,6 +1,6 @@
 <?php
 require_once '../Spotify.php';
 
-$spotifyApi = new Spotify('xxx', 'xxx, 'http://joyify.se/callback.php');
+$spotifyApi = new Spotify('xx', 'xx', 'http://joyify.se/callback.php');
 
 ?>
