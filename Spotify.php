@@ -39,6 +39,17 @@ class Spotify {
     
     public $redirectURI;
     public $accessToken;
+    public $username;
+    /**
+     * Authorize the access token
+     */
+    public function authenticate($accessToken) {
+        $this->accessToken = $accessToken;
+        $a = $this->me();
+        $this->username = $a['id'];
+        $this->profile = $a;
+        
+    }
     
     /**
      * Client secret for Spotify
@@ -77,7 +88,9 @@ class Spotify {
         
     }
     public function me() {
+       
         $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/me', 'text');
+       
         return $data;
     }
     /**
@@ -88,6 +101,38 @@ class Spotify {
     public function getPlaylistsForUser($user_id) {
         $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user_id . '/playlists', 'text');
         return $data;
+    }
+    
+    
+    /**
+     * Gets the user profile
+     */
+    public function getUserProfile($user_id) {
+        $data = $this->request('GET', SPOTIFY_API_ENDPOINT, '/users/' . $user_id, 'text');
+        return $data;
+    }
+    
+    /**
+     * Creates a playlist
+     * @param {String} $name The title
+     * @param {Boolean} $public denotates if public
+     * @param {Array} $tracks An array of spotify uris (optional)
+     */
+    public function createPlaylist($name, $public,  $tracks = NULL) {
+
+        $data = array('name' => $name, 'public' => $public);
+        $data = $this->request('POST', SPOTIFY_API_ENDPOINT, '/users/' . $this->username . '/playlists', 'application/json', $data);
+      
+        if ($tracks) {
+            // If we have tracks add tracks aswell
+            $uri = 'spotify:user:' . $this->username . ':playlist:' . $data['id'];
+            $data = $this->addTracksToPlaylist($uri, $tracks);
+        } else {
+        }
+        return $data;
+        
+        // Get the data and add songs
+        
     }
     
     /**
@@ -193,14 +238,15 @@ class Spotify {
             }
         }
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_HEADER, FALSE);
         $response = curl_exec($ch);
         $result = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        var_dump($result);
         if ($result < 200 || $request > 299) {
             throw new Exception("Error. Code was " . curl_errno($ch) . ' ' . $result);
         }
         $data = json_decode($response, TRUE);
-        
+        echo ($response);
         return $data;
         
     }

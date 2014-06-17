@@ -1,6 +1,6 @@
 <?php
 require_once 'spotify.inc.php';
-$spotifyApi->accessToken = $_GET['access_token'];
+$spotifyApi->authenticate($_GET['access_token']);
 
 /**
  * Test some stuff
@@ -17,5 +17,5 @@ $user_info = $spotifyApi->getPlaylistsForUser('drsounds');
  */
  // Getting some playlist info
 
-$spotifyApi->addTracksToPlaylist('spotify:user:drsounds:playlist:6TwBnzSA2AtpjTARigaO2d', array('spotify:track:1sDvVtcfvXAyWyedPy7av2'), 0);
-var_dump($user_info);
+//$spotifyApi->addTracksToPlaylist('spotify:user:drsounds:playlist:6TwBnzSA2AtpjTARigaO2d', array('spotify:track:1sDvVtcfvXAyWyedPy7av2'), 0);
+$spotifyApi->createPlaylist("Test", FALSE, array('spotify:track:1sDvVtcfvXAyWyedPy7av2'));
