@@ -98,7 +98,7 @@ class Spotify {
         $user = $parts[2];
         $playlist = $parts[4];
         $uri = '/users/' . $user . '/playlists/' . $playlist;
-        var_dump($uri);
+        //var_dump($uri);
         $data = $this->request('GET', SPOTIFY_API_ENDPOINT, $uri, 'text', NULL);
         return $data;
     }
@@ -118,14 +118,20 @@ class Spotify {
     /***
      * Add tracks to a playlist
      ***/
-    public function addTracksToPlaylist($uri, $tracks) {
+    public function addTracksToPlaylist($uri, $tracks, $position = -1) {
         $parts = explode(':', $uri);
         $user = $parts[2];
         $playlist = $parts[4];
         $url = '/users/' . $user . '/playlists/' . $playlist . '/tracks';
 
         $data = $tracks;
+        if ($position < 0) {
         $data = $this->request('POST', SPOTIFY_API_ENDPOINT, $url, 'application/json', $tracks);
+        } else {
+            $data = $this->request('POST', SPOTIFY_API_ENDPOINT, $url . '?uris=' . implode(',', $tracks) . '&position=' . $position, 'application/json');
+            
+        }
+            
         return $data;
     }
     
@@ -189,9 +195,8 @@ class Spotify {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_HEADER, true);
         $response = curl_exec($ch);
-        echo $response;
         $result = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($result != 200) {
+        if ($result < 200 || $request > 299) {
             throw new Exception("Error. Code was " . curl_errno($ch) . ' ' . $result);
         }
         $data = json_decode($response, TRUE);
